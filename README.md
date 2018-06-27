@@ -17,9 +17,9 @@ Install Firebase tools:
 
 Instantiate your project: 
 
-`$ firebase init`
+`$ firebase init functions`
 
-Firebase has a lot of documentation on how to set up projects - we just followed their recommendations. Your mileage may very and do what you want to do ;)
+Don't overwrite existing package.json and index.js
 
 ### App/MQTT Configuration
 
