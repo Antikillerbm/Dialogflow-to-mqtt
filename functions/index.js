@@ -1,32 +1,58 @@
+'use strict';
+
 const functions = require('firebase-functions');
+const {WebhookClient, Card, Suggestion} = require('dialogflow-fulfillment');
+var BadRequestError = require('./http-errors').BadRequestError
+var UnauthorizedError = require('./http-errors').UnauthorizedError
 
-/*
-
-Configuration:
-
-You will have to configure a handful of firebase config vars.
-
-  firebase functions:config:set mqtt.server.port=12345
-  firebase functions:config:set mqtt.server.host=mqtt://mxx.cloudmqtt.com
-  firebase functions:config:set mqtt.server.user=username
-  firebase functions:config:set mqtt.server.password=password
-  firebase functions:config:set access.api_key=secretapikey
-
-*/
-
-//Instantiat MQTT
 var mqtt = require('mqtt');
 
-//Let's post a message to an MQTT topic. Whee
-exports.post = functions.https.onRequest((request, response) => {
+process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 
-  // Safety first. Check to see if the API key is correct.
-  if (functions.config().access.api_key != request.body.key) {
-    console.log("API KEY doesn't match");
-    response.send("404 Error");
-    return;
+exports.publish_mqtt = functions.https.onRequest((request, response) => {
+
+  console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
+  console.log('Dialogflow Request body: ' + JSON.stringify(request.body));
+
+  const agent = new WebhookClient({ request, response });
+  
+  try
+  {
+    // Safety first. Check to see if the API key is what we configured before deploying the function
+    if (functions.config().access.api_key != request.headers.api_key) {
+      throw new UnauthorizedError("Invalid API Key - please check your configuration.");
+    }
+
+    function welcome(agent) {
+      agent.add(`Welcome to home control assistant!`);
+    }
+
+    function fallback(agent) {
+      agent.add(`I didn't understand`);
+      agent.add(`I'm sorry, can you try again?`);
+    }
+
+    function blinds(agent) {
+      agent.add(`this is a response from the blinds intent!`)    
+    }
+
+    // Run the proper function handler based on the matched Dialogflow intent name
+    let intentMap = new Map();
+    intentMap.set('Default Welcome Intent', welcome);
+    intentMap.set('Default Fallback Intent', fallback);
+    intentMap.set('blinds', blinds);
+    agent.handleRequest(intentMap);
   }
+  catch (err)
+  {
+    console.error(err)
+    agent.add(err.message);
+    agent.send_()
+  }
+});
 
+function publishToMqtt(topic, message)
+{
   //Options for connecting to the MQTT host
   var options = {
     port: functions.config().mqtt.server.port,
@@ -44,8 +70,6 @@ exports.post = functions.https.onRequest((request, response) => {
 
   //Let's connect
   var client = mqtt.connect(functions.config().mqtt.server.host, options);
-  var topic = request.body.topic;
-  var message = request.body.message;
 
   client.on('connect', function () {
     console.log('client connected');
@@ -74,5 +98,4 @@ exports.post = functions.https.onRequest((request, response) => {
     //end the connection to the mqtt server
     client.end();
   });
-
-});
+}
