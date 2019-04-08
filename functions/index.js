@@ -24,11 +24,13 @@ exports.post = functions.https.onRequest((request, response) => {
     }
 
 	function light_control(agent) {
-    var topic = agent.parameters.topic
-    var message = agent.parameters.message
-	return publishToMqtt(topic, message)
-    //agent.add(topic, message);
-   }
+    var topic = agent.parameters.topic;
+    var status = agent.parameters.status.toString();
+    var time = agent.parameters.time.toString(); 
+    var message = JSON.stringify({status, time});
+      	agent.add(message);
+	return publishToMqtt(topic, message);
+    }
 	
     // Run the proper function handler based on the matched Dialogflow intent name
    let intentMap = new Map();
