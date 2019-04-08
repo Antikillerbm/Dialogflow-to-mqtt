@@ -2,14 +2,14 @@
 
 const functions = require('firebase-functions');
 const {WebhookClient, Card, Suggestion} = require('dialogflow-fulfillment');
-var BadRequestError = require('./http-errors').BadRequestError
-var UnauthorizedError = require('./http-errors').UnauthorizedError
+var BadRequestError = require('./http-errors').BadRequestError;
+var UnauthorizedError = require('./http-errors').UnauthorizedError;
 
 var mqtt = require('mqtt');
 
 process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
 
-exports.publish_mqtt = functions.https.onRequest((request, response) => {
+exports.post = functions.https.onRequest((request, response) => {
 
   console.log('Dialogflow Request headers: ' + JSON.stringify(request.headers));
   console.log('Dialogflow Request body: ' + JSON.stringify(request.body));
@@ -23,31 +23,23 @@ exports.publish_mqtt = functions.https.onRequest((request, response) => {
       throw new UnauthorizedError("Invalid API Key - please check your configuration.");
     }
 
-    function welcome(agent) {
-      agent.add(`Welcome to home control assistant!`);
-    }
-
-    function fallback(agent) {
-      agent.add(`I didn't understand`);
-      agent.add(`I'm sorry, can you try again?`);
-    }
-
-    function blinds(agent) {
-      agent.add(`this is a response from the blinds intent!`)    
-    }
-
+	function light_control(agent) {
+    var topic = agent.parameters.topic
+    var message = agent.parameters.message
+	return publishToMqtt(topic, message)
+    //agent.add(topic, message);
+   }
+	
     // Run the proper function handler based on the matched Dialogflow intent name
-    let intentMap = new Map();
-    intentMap.set('Default Welcome Intent', welcome);
-    intentMap.set('Default Fallback Intent', fallback);
-    intentMap.set('blinds', blinds);
+   let intentMap = new Map();
+    intentMap.set('light_control', light_control);
     agent.handleRequest(intentMap);
   }
   catch (err)
   {
-    console.error(err)
+    console.error(err);
     agent.add(err.message);
-    agent.send_()
+    agent.send_();
   }
 });
 
@@ -88,12 +80,12 @@ function publishToMqtt(topic, message)
     // handle the error
     if ( err ) {
       console.log("Error:" + err);
-      response.send("Error:" + err);
+//      response.send("Error:" + err);
       return;
     }
 
     //If the publish is successful then return
-    response.send("Successfullly published message: '" + message + "' to topic: " + topic);
+//    response.send("Successfullly published message: '" + message + "' to topic: " + topic);
 
     //end the connection to the mqtt server
     client.end();
