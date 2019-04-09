@@ -23,21 +23,27 @@ exports.post = functions.https.onRequest((request, response) => {
       throw new UnauthorizedError("Invalid API Key - please check your configuration.");
     }
 
-    function light_control(agent) {
+    function light_control(agent) { //наш интент
     let devices = agent.parameters.devices.toString();
-    let time = agent.parameters.time;
-     if (time == null){
-      time = 'n/a';
-}
-    time = toString(time);
+    let time; //переменные для json контейнера
+    let color;
+    let level;
+
+     if (agent.parameters.time != null){ //проверяем, что параметр не пустой и пихаем в стринг
+     time = agent.parameters.time.toString();}
+     if (agent.parameters.level != null){
+     level = agent.parameters.level.toString();}
+     if (agent.parameters.color != null){
+     color = agent.parameters.color.toString();}
+
     var topic = agent.parameters.topic;
-    var message = JSON.stringify({devices, time});
-      	agent.add(message);
-	return publishToMqtt(topic, message);
+    var message = JSON.stringify({devices, time, level, color}); //отправляем, что насобиралось в контейнер
+      	agent.add(message); //лень лезть в консоль файрбэйса, поэтому дебаг здесь))
+	return publishToMqtt(topic, message); //хыдыдыщ! 
    }
     // Run the proper function handler based on the matched Dialogflow intent name
    let intentMap = new Map();
-    intentMap.set('light_control', light_control);
+    intentMap.set('light_control', light_control); //сюда добавляем интенты
     agent.handleRequest(intentMap);
   }
   catch (err)
