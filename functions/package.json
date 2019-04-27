@@ -2,7 +2,7 @@
   "name": "google-assistant-mqtt-bridge",
   "description": "handle google-assistant (dialogflow) fulfillment by sending it to your mqtt provider",
   "engines": {
-    "node": "6"
+    "node": "8"
   },
   "version": "0.0.1",
   "private": true,
