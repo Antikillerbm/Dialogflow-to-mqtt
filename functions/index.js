@@ -13,8 +13,8 @@ var formatter = new Intl.DateTimeFormat("ru", { //формат даты
   day: "numeric",
   hour: "numeric",
   minute: "numeric",
-  second: "numeric"
-  //timezone: "UTC+3"
+  second: "numeric",
+  timeZone: "Europe/Moscow"
 });
 
 process.env.DEBUG = 'dialogflow:debug'; // enables lib debugging statements
@@ -38,7 +38,7 @@ exports.post = functions.region('europe-west1').https.onRequest((request, respon
 
       var topic = 'device_switch';
       var message = JSON.stringify({ devices, status }); //отправляем, что насобиралось в контейнер
-      agent.add(message); //лень лезть в консоль файрбэйса, поэтому дебаг здесь))
+      agent.add(message);
       return publishToMqtt(topic, message); //хыдыдыщ! 
     }
 
@@ -60,7 +60,7 @@ exports.post = functions.region('europe-west1').https.onRequest((request, respon
 
       var topic = 'device_set';
       var message = JSON.stringify({ devices, status, level, color }); //отправляем, что насобиралось в контейнер
-      agent.add(message); //лень лезть в консоль файрбэйса, поэтому дебаг здесь))
+      agent.add(message);
       return publishToMqtt(topic, message); //хыдыдыщ! 
     }
 
@@ -69,8 +69,6 @@ exports.post = functions.region('europe-west1').https.onRequest((request, respon
       let status = agent.parameters.status.toString();
       let event;
       let time;
-      // let date; 
-
 
       if (agent.parameters.time.toString() != '') {
         console.log('time != null ' + agent.parameters.time.toString());//проверяем, что параметр не пустой и пихаем в стринг
@@ -80,28 +78,33 @@ exports.post = functions.region('europe-west1').https.onRequest((request, respon
         let unit = value[1];
 
         if (unit == "hour") {
+          console.log('time_now = ' + Date.now());
           time = Date.now() + parseInt(time) * 3600000; //текущая дата-время + кол-во минут ожидания
+          console.log('time_milis = ' + time);
         }
         else if (unit == "min") {
           time = Date.now() + arseInt(time) * 60000;
         }
         time = formatter.format(time).toString(); //делаем формат понятный domoticz
-
+        console.log('time_formatted = ' + time);
       }
 
-      if (agent.parameters.date_time.date_time != null) {
+      else if (agent.parameters.in_date_time.toString() != '') {
+        console.log('in_date_time != null ' + agent.parameters.in_date_time.toString());
+        time = agent.parameters.in_date_time.toString().replace('T', ' ').slice(0, 19);
+      }
+
+      else if (agent.parameters.start_date_time.startDateTime != null) {
+        console.log('start_date_time != null ' + agent.parameters.start_date_time.startDateTime.toString());
+        time = agent.parameters.start_date_time.startDateTime.toString().replace('T', ' ').slice(0, 19);
+      }
+
+      else if (agent.parameters.date_time.date_time != null) {
         console.log('date_time != null ' + agent.parameters.date_time.date_time.toString());
         time = agent.parameters.date_time.date_time.toString().replace('T', ' ').slice(0, 19);
       }
-
-      //else if (agent.parameters.date_time.startDateTime != null) {
-      //console.log('start_date_time != null ' + agent.parameters.date_time.startDateTime.toString());
-      //time = agent.parameters.date_time.startDateTime.toString().replace('T', ' ').slice(0, 19);
-      //}
-      else if (agent.parameters.in_date_time.toString() != '') {
-
-        console.log('in_date_time != null ' + agent.parameters.in_date_time.toString());
-        time = agent.parameters.in_date_time.toString().replace('T', ' ').slice(0, 19);
+      else {
+        agent.add('No time parameters');
       }
 
       if (agent.parameters.event.toString() != '') {
@@ -109,7 +112,7 @@ exports.post = functions.region('europe-west1').https.onRequest((request, respon
         event = agent.parameters.event.toString();
       }
       else {
-        event = 'on'; //событие в установленное время, если не задано иное
+        event = ''; //событие в установленное время, если не задано иное
       }
       console.log('time =' + time);
       var topic = 'device_time';
