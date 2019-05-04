@@ -177,9 +177,6 @@ function publishToMqtt(topic, message) {
       return;
     }
 
-    //If the publish is successful then return
-    response.send("Successfullly published message: '" + message + "' to topic: " + topic);
-
     //end the connection to the mqtt server
     client.end();
   });
